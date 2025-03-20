@@ -86,7 +86,7 @@ vsearch --cluster_size "$unique_output" --id 0.99 --centroids "$denovo_derep" --
 vsearch --uchime_denovo "$denovo_derep" --nonchimeras "$chimera_free" --threads 4
 
 # Step 8: Cluster into OTUs with 99% similarity using 4 cores
-vsearch --cluster_fast "$chimera_free" --id 0.99 --centroids "$otu_output" --threads 4
+vsearch --cluster_fast "$chimera_free" --id 0.97 --centroids "$otu_output" --threads 4
 
 # Final output message
 echo "MetaTrimX Pipeline completed successfully for sample: $sample_tag"

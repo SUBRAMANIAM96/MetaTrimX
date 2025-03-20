@@ -17,11 +17,11 @@ declare -A reverse_primers_2
 declare -A sample_tags
 
 # Add the primer sequences and tags for each sample
-forward_primers_1["sample name"]="Forward primer"
-reverse_primers_1["sample name "]="Reverse primer "
-forward_primers_2["sample name"]="Forward primer"
-reverse_primers_2["sample name"]="Reverse primer"
-sample_tags["sample name"]="tags"
+forward_primers_1["sample_name"]="Forward primer"
+reverse_primers_1["sample_name "]="Reverse primer "
+forward_primers_2["sample_name"]="Forward primer"
+reverse_primers_2["sample_name"]="Reverse primer"
+sample_tags["sample_name"]="tags"
 
 # Path to the MetaTrimX script
 metatrimx_script="/mnt/c/Users/User/Downloads/MetaTrimX/metatrimx/core/metatrimx.sh"
