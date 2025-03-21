@@ -1,0 +1,5 @@
+cutadapt>=4.0
+vsearch
+bash
+
+python>=3.6,<3.13
