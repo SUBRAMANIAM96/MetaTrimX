@@ -140,7 +140,12 @@ To run the test, navigate to the `test/` folder and execute the test pipeline:
 ```bash
 cd metatrimx/test
 bash test_trim_pipeline.sh
+## Extracting FASTQ Files
 
+To ensure the extracted FASTQ files remain in the same folder, use:
+
+```bash
+gunzip -k forward_reads.fastq.gz reverse_reads.fastq.gz
 
 
 
