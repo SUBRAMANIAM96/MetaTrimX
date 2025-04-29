@@ -24,7 +24,7 @@ reverse_primers_2["sample_name"]="Reverse primer"
 sample_tags["sample_name"]="tags"
 
 # Path to the MetaTrimX script
-metatrimx_script="/mnt/c/Users/User/Downloads/MetaTrimX/metatrimx/core/metatrimx.sh"
+metatrimx_script="${base_path}/metatrimx/core/metatrimx.sh"
 
 # Check if the main processing script exists
 if [[ ! -f "$metatrimx_script" ]]; then
