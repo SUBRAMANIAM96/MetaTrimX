@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Check for the correct number of arguments
+# Check for correct number of arguments
 if [[ $# -ne 10 ]]; then
     echo "Usage: $0 <file_path> <forward_read> <reverse_read> <forward_primer_1> <reverse_primer_1> <forward_primer_2> <reverse_primer_2> <sample_tag> <quality_cutoff> <min_length>"
     exit 1
@@ -10,84 +10,113 @@ fi
 file_path="$1"
 forward_read="$2"
 reverse_read="$3"
-forward_primer_1="$4"
-reverse_primer_1="$5"
-forward_primer_2="$6"
-reverse_primer_2="$7"
-sample_tag="$8"
-quality_cutoff="$9"
-min_length="${10}"
+fwd1="$4"
+rev1="$5"
+fwd2="$6"
+rev2="$7"
+tag="$8"
+quality="$9"
+min_len="${10}"
 
-# Check if required tools are installed
-for tool in cutadapt vsearch; do
+# Output file paths
+demux_R1="${file_path}/demux_${tag}_F.fastq"
+demux_R2="${file_path}/demux_${tag}_R.fastq"
+trimmed_R1="${file_path}/trimmed_${tag}_F.fastq"
+trimmed_R2="${file_path}/trimmed_${tag}_R.fastq"
+clean_R1="${file_path}/no_adapters_${tag}_F.fastq"
+clean_R2="${file_path}/no_adapters_${tag}_R.fastq"
+merged="${file_path}/merged_${tag}.fastq"
+filtered="${file_path}/filtered_${tag}.fastq"
+fasta="${file_path}/filtered_${tag}.fasta"
+derep="${file_path}/dereplicated_${tag}.fasta"
+nonchim="${file_path}/nonchim_${tag}.fasta"
+centroids="${file_path}/otu_centroids_${tag}.fasta"
+otu_map="${file_path}/otu_map_${tag}.uc"
+
+# Check for required tools
+for tool in cutadapt vsearch seqtk; do
     if ! command -v $tool &> /dev/null; then
-        echo "Error: $tool is not installed. Please install it."
+        echo "Error: $tool not found in PATH"
         exit 1
     fi
 done
 
-# Define output files
-trimmed_forward="${file_path}/trimmed_${sample_tag}_F.fastq"
-trimmed_reverse="${file_path}/trimmed_${sample_tag}_R.fastq"
-no_adapters_forward="${file_path}/no_adapters_${sample_tag}_F.fastq"
-no_adapters_reverse="${file_path}/no_adapters_${sample_tag}_R.fastq"
-demux_forward="${file_path}/demux_${sample_tag}_F.fastq"
-demux_reverse="${file_path}/demux_${sample_tag}_R.fastq"
-merged_output="${file_path}/merged_${sample_tag}.fastq"
-unique_output="${file_path}/unique_${sample_tag}.fastq"
-denovo_derep="${file_path}/derep_${sample_tag}.fastq"
-chimera_free="${file_path}/no_chimera_${sample_tag}.fastq"
-otu_output="${file_path}/otu_${sample_tag}.txt"
-
-# Step 1: Trim reads
-cutadapt -q "$quality_cutoff" --minimum-length "$min_length" \
-    --pair-filter=any \
-    -g "$forward_primer_1" -G "$reverse_primer_1" \
-    -a "$forward_primer_1" -A "$reverse_primer_1" \
-    -g "$forward_primer_2" -G "$reverse_primer_2" \
-    -a "$forward_primer_2" -A "$reverse_primer_2" \
-    -o "$trimmed_forward" -p "$trimmed_reverse" \
+echo "[1] Demultiplexing by tag: $tag"
+cutadapt -j 12 -g "^${tag}" -G "^${tag}" --action=trim \
+    -o "$demux_R1" -p "$demux_R2" \
     "$forward_read" "$reverse_read"
 
-# Step 2: Remove remaining adapters
-cutadapt -a AGATCGGAAGAGC -A AGATCGGAAGAGC \
-    -o "$no_adapters_forward" -p "$no_adapters_reverse" \
-    "$trimmed_forward" "$trimmed_reverse"
-
-# Step 3: Demultiplex reads based on the tag
-cutadapt -g "$sample_tag" -G "$sample_tag" \
-    -o "$demux_forward" -p "$demux_reverse" \
-    "$no_adapters_forward" "$no_adapters_reverse"
-
-# Verify demultiplexing output before proceeding
-if [[ ! -s "$demux_forward" || ! -s "$demux_reverse" ]]; then
-    echo "Error: Demultiplexed files are missing or empty. Exiting."
-    exit 1
-else
-    echo "Sample $sample_tag processed successfully."
-fi
-
-# Step 4: Merge paired-end reads using vsearch with 4 cores
-vsearch --fastq_mergepairs "$demux_forward" --reverse "$demux_reverse" --fastqout "$merged_output" --threads 4
-
-# Check if merging was successful
-if [[ ! -s "$merged_output" ]]; then
-    echo "Error: Merging failed. No merged reads found for $sample_tag. Exiting."
+if [[ $? -ne 0 ]]; then
+    echo "Error: Demultiplexing failed for $tag"
     exit 1
 fi
 
-# Step 5: Remove duplicate sequences using 4 cores
-vsearch --fastx_uniques "$merged_output" --sizeout --fastaout "$unique_output" --threads 12
+echo "[2] Primer trimming (2 primer sets)"
+cutadapt -j 12 -q "$quality" --minimum-length "$min_len" \
+    --pair-filter=any \
+    -g "$fwd1" -G "$rev1" \
+    -g "$fwd2" -G "$rev2" \
+    -o "$trimmed_R1" -p "$trimmed_R2" \
+    "$demux_R1" "$demux_R2"
 
-# Step 6: Denoise sequences using 4 cores
-vsearch --cluster_size "$unique_output" --id 0.99 --centroids "$denovo_derep" --threads 4
+if [[ $? -ne 0 ]]; then
+    echo "Error: Primer trimming failed for $tag"
+    exit 1
+fi
 
-# Step 7: Remove chimeras using 4 cores
-vsearch --uchime_denovo "$denovo_derep" --nonchimeras "$chimera_free" --threads 4
+echo "[3] Adapter removal"
+cutadapt -j 12 -a AGATCGGAAGAGC -A AGATCGGAAGAGC \
+    -o "$clean_R1" -p "$clean_R2" \
+    "$trimmed_R1" "$trimmed_R2"
 
-# Step 8: Cluster into OTUs with 99% similarity using 4 cores
-vsearch --cluster_fast "$chimera_free" --id 0.97 --centroids "$otu_output" --threads 4
+if [[ $? -ne 0 ]]; then
+    echo "Error: Adapter removal failed for $tag"
+    exit 1
+fi
 
-# Final output message
-echo "MetaTrimX Pipeline completed successfully for sample: $sample_tag"
-echo "Final OTUs are saved in: $otu_output"
+echo "[4] Merging paired reads..."
+vsearch --fastq_mergepairs "$clean_R1" \
+    --reverse "$clean_R2" \
+    --fastqout "$merged" \
+    --fastq_minovlen 20 \
+    --fastq_maxdiffs 5 \
+    --relabel all \
+    --threads 4
+
+if [[ ! -s "$merged" ]]; then
+    echo "Error: Merging failed for $tag"
+    exit 1
+fi
+
+read_count=$(grep -c "^@" "$merged")
+echo "[INFO] Merged read count for $tag: $read_count"
+
+echo "[5] Quality filtering..."
+vsearch --fastq_filter "$merged" \
+    --fastqout "$filtered" \
+    --fastq_minlen 150 \
+    --fastq_maxee 1.0 \
+    --threads 4
+
+echo "[6] Convert to FASTA..."
+seqtk seq -A "$filtered" > "$fasta"
+
+echo "[7] Dereplicating..."
+vsearch --derep_fulllength "$fasta" \
+    --output "$derep" \
+    --sizeout \
+    --threads 4
+
+echo "[8] Chimera removal..."
+vsearch --uchime_denovo "$derep" \
+    --nonchimeras "$nonchim" \
+    --threads 4
+
+echo "[9] OTU clustering..."
+vsearch --cluster_fast "$nonchim" \
+    --id 0.97 \
+    --centroids "$centroids" \
+    --uc "$otu_map" \
+    --relabel OTU_
+
+echo " Processing completed for sample: $tag"
