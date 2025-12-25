@@ -77,8 +77,6 @@ $$
 \end{cases}
 $$
 
-```
-
 Results exported to `AI_Classification.csv` with per-OTU RF score, SVM score, ensemble confidence, and verdict—so you **inspect, filter, or override at will**.
 
 ---
