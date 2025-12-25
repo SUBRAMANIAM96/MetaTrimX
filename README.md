@@ -86,6 +86,7 @@ In **Mode 2**, MetaTrimX promotes every OTU/ASV to a **candidate biological enti
 #### **Path B – Motif Brain (One-Class SVM + PCA)**
 
 - **K-mer Decomposition:** Each sequence is mapped to overlapping $k$-mers (where $k=6$).
+  
 - **Vectorization:** `CountVectorizer` generates a high-dimensional feature matrix:
 
   $$
