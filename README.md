@@ -64,44 +64,51 @@ In **Mode 2**, MetaTrimX promotes every OTU/ASV to a **candidate biological enti
 
 #### **Path A – Statistical Brain (Random Forest Classifier)**
 
-- **Features per Sequence:** The model extracts a feature vector $X$ for every read:
+**1. Features per Sequence:**
+The model extracts a feature vector $X$ for every read containing Length, GC content, and Entropy:
 
-  $$
-  X = [\text{Length}, \text{GC}_{\text{frac}}, H_{\text{entropy}}]
-  $$
+$$
+X = [\text{Length}, \text{GC}_{\text{frac}}, H_{\text{entropy}}]
+$$
 
-- **Training Strategy:**
-    - Top $\approx 20\%$ abundant sequences $\rightarrow$ **"Real Biology"** class.
-    - Synthetic random sequences $\rightarrow$ **"Noise"** class.
-    - *(Note: This allows the model to self-adapt to ANY target organism—Plants, Fungi, Invertebrates, or Vertebrates—by learning the specific signature of your uploaded dataset.)*
-- **Model:** `RandomForestClassifier` (200 trees, `max_depth=10`).
-- **Output:** A probability score representing biological likelihood:
+**2. Training Strategy:**
+* Top $\approx 20\%$ abundant sequences $\rightarrow$ **"Real Biology"** class.
+* Synthetic random sequences $\rightarrow$ **"Noise"** class.
+* *(Note: This allows the model to self-adapt to ANY target organism—Plants, Fungi, Invertebrates, or Vertebrates—by learning the specific signature of your uploaded dataset.)*
 
-  $$
-  P(\text{Real}) \in [0, 1]
-  $$
+**3. Model Output:**
+Using a `RandomForestClassifier` (200 trees), it outputs a probability score:
 
-- **Why:** Catches statistically impossible sequences (e.g., incorrect GC% or abnormal length distributions).
+$$
+P(\text{Real}) \in [0, 1]
+$$
+
+*(Why: Catches statistically impossible sequences like incorrect GC% or abnormal length.)*
+
+---
 
 #### **Path B – Motif Brain (One-Class SVM + PCA)**
 
-- **K-mer Decomposition:** Each sequence is mapped to overlapping $k$-mers (where $k=6$).
-  
-- **Vectorization:** `CountVectorizer` generates a high-dimensional feature matrix:
+**1. K-mer Decomposition:**
+Each sequence is mapped to overlapping $k$-mers (where $k=6$).
 
-  $$
-  N_{\text{features}} = 4^6 = 4,096
-  $$
+**2. Vectorization:**
+`CountVectorizer` generates a high-dimensional feature matrix:
 
-- **Compression:** **PCA** reduces dimensionality to 10 principal components while retaining significant variance:
+$$
+N_{\text{features}} = 4^6 = 4,096
+$$
 
-  $$
-  \sigma^2_{\text{retained}} \approx 95.3\%
-  $$
+**3. Compression:**
+**PCA** reduces dimensionality to 10 principal components while retaining significant variance:
 
-- **Anomaly Detection:** `OneClassSVM` (RBF kernel, $\nu=0.05$) learns the "normal" biological boundary.
-- **Scoring:** Decision function distances are normalized via a sigmoid function to a probability-like score in $[0,1]$.
-- **Why:** Catches unusual motif combinations (chimeras, sequencing errors).
+$$
+\sigma^2_{\text{retained}} \approx 95.3\%
+$$
+
+**4. Scoring:**
+The `OneClassSVM` calculates decision function distances, normalized to a score in $[0,1]$.
+*(Why: Catches unusual motif combinations like chimeras and sequencing errors.)*
 
 ### The Ensemble Verdict
 For each OTU, MetaTrimX calculates a consensus score to determine biological validity.
