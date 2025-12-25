@@ -6,12 +6,16 @@
 
 **MetaTrimX** is a revolutionary, fully automated bioinformatics pipeline for metabarcoding analysis. It transforms raw paired-end Illumina sequencing reads into publication-ready Operational Taxonomic Units (OTUs) or Amplicon Sequence Variants (ASVs) through two distinct execution pathways powered by machine learning.
 
-### **What Makes MetaTrimX Unique:**
+### 🚀 What Makes MetaTrimX Unique?
+**MetaTrimX employs a revolutionary "Dual-Path" Machine Learning Architecture that adapts to any biological marker.**
 
-MetaTrimX employs a **Dual-Path Machine Learning Architecture**:
+#### **Mode 1: The Predictive Optimizer (Auto-Tuning)**
+*Stop guessing parameters.*
+Uses a **Multi-Output Random Forest** to diagnose raw data signatures and automatically predict the perfect processing parameters (trimming, merging, and filtering) for your specific dataset.
 
-1. **Mode 1 (Diagnostic - The Predictive Optimizer)**: Uses **Multi-Output Random Forest Regressor** to intelligently diagnose your raw sequencing data and automatically predict optimal processing parameters before execution
-2. **Mode 2 The Bio-Sentinel (Quality Control)**: Deploys a **Hybrid Ensemble (RF + SVM)** to validate the pipeline's output. It acts as an automated critic, scoring every OTU to distinguish true biology from subtle artifacts.
+#### **Mode 2: The Bio-Sentinel (Quality Control)**
+*Automated defense against noise.*
+Deploys a **Hybrid Ensemble (RF + SVM)** to validate the pipeline's output. It acts as an automated critic, scoring every **OTU or ASV** to distinguish true biology from subtle artifacts with high-precision confidence scoring.
 ---
 
 ##  Machine Learning Engine
@@ -20,44 +24,74 @@ MetaTrimX ships with an opinionated but **transparent ML layer** that behaves li
 
 ### **Mode 1 – The Predictive Optimizer**
 
-In **Mode 1**, MetaTrimX uses a trained **Multi-Output Random Forest Regressor** (stored in `metatrimx_brain.pkl`) to turn raw data signatures into a complete parameter set in one shot.
+In **Mode 1**, MetaTrimX utilizes a pre-trained **Multi-Output Random Forest Regressor** (stored in `metatrimx_brain.pkl`) to instantly translate raw data quality signatures into a precise, 7-dimensional parameter configuration.
 
-- **Model Type**: `RandomForestRegressor` wrapped in `MultiOutputRegressor` to predict a **7-dimensional vector** of optimal parameters simultaneously (demux error, trim tolerance, merge diffs, maxEE, min length, quality cutoff, min overlap).
-  
-- **Input Features** (4-vector `[Q30, tag_shift, primer_gap, read_length]`):
-  - **Q30 rate** from focused `fastp` scan of 20,000 reads
-  - **Tag shift** and **primer gap** estimated directly from raw reads (dual-primer aware)
-  - **Mean read length** from same diagnostic pass
+#### **1. The Input Vector ($X$)**
+The model scans a diagnostic subset (20k reads) to compute a 4-dimensional feature vector representing the "health" of your sequencing run:
 
-- **How It Works**: The model treats **pipeline configuration as a supervised regression problem**, learning from historical runs where these 7 parameters already worked well for similar data profiles. It scans your data, computes 4 features, feeds them to the RF "brain", and writes **ready-to-run scripts** (`step1_cleaning_pipeline.py`, `step2_clustering_pipeline.py`) plus a JSON config explaining what the model decided.
+$$
+X_{\text{input}} = [Q_{30}, \Delta_{\text{tag}}, \Delta_{\text{primer}}, L_{\text{mean}}]
+$$
 
-- **Output**: 7 simultaneous predictions:
-  ```
-  [demux_error, trim_error, merge_diffs, maxEE, min_len, quality_cutoff, min_overlap]
-  ```
+* **$Q_{30}$:** The ratio of high-quality bases (Phred score $\ge 30$).
+* **$\Delta_{\text{tag}}$ / $\Delta_{\text{primer}}$:** Detected tag shifts and primer gaps (dual-primer aware).
+* **$L_{\text{mean}}$:** The average read length from the diagnostic pass.
+
+#### **2. The Model Architecture**
+* **Algorithm:** `RandomForestRegressor` wrapped in a `MultiOutputRegressor`.
+* **Strategy:** Treats pipeline configuration as a **supervised regression problem**. It learns the non-linear relationship between data quality ($X$) and optimal filtering thresholds ($Y$) based on historical optimization data.
+
+#### **3. The Output Vector ($Y$)**
+The model predicts a continuous 7-dimensional vector of optimal processing parameters simultaneously:
+
+$$
+Y_{\text{pred}} = [\epsilon_{\text{demux}}, \epsilon_{\text{trim}}, \delta_{\text{merge}}, \text{EE}_{\text{max}}, L_{\text{min}}, Q_{\text{cut}}, O_{\text{min}}]
+$$
+
+* **$\epsilon$ terms:** Allowed error rates for demultiplexing and primer trimming.
+* **$\text{EE}_{\text{max}}$:** Maximum Expected Error threshold.
+* **$O_{\text{min}}$:** Minimum overlap required for paired-end merging.
+
+#### **4. Execution**
+The system automatically generates ready-to-run scripts (`step1_cleaning.py`, `step2_clustering.py`) and a JSON configuration file, removing the need for manual parameter tuning.
 
 ---
 
-### **Mode 2 – The Neural Sentinel**
+### **Mode 2 – The Bio-Sentinel**
 
-In **Mode 2**, MetaTrimX promotes every OTU to a **candidate biological entity** and asks a hybrid ensemble, the *Neural Sentinel*, to vote on whether it looks real or suspicious.
+In **Mode 2**, MetaTrimX promotes every OTU/ASV to a **candidate biological entity** and asks a hybrid ensemble, the *Bio-Sentinel*, to vote on whether it looks real or suspicious.
 
-**Path A – Statistical Brain (Random Forest Classifier)**
+#### **Path A – Statistical Brain (Random Forest Classifier)**
 
-- **Features per sequence**: length, GC fraction, Shannon entropy
-- **Training**: Top ~20% abundant sequences = "real biology" proxies; matching number of synthetic 200-bp random sequences = "noise" class
-- **Model**: `RandomForestClassifier` (200 trees, `max_depth=10`)
-- **Output**: P(Real_Biology) ∈ [0,1]
-- **Why**: Catches statistically impossible sequences (wrong GC%, weird length distribution)
+- **Features per Sequence:** The model extracts a feature vector $X$ for every read:
+  
+  $$X = [\text{Length}, \text{GC}_{\text{frac}}, H_{\text{entropy}}]$$
 
-**Path B – Motif Brain (One-Class SVM + PCA)**
+- **Training Strategy:**
+    - Top $\approx 20\%$ abundant sequences $\rightarrow$ **"Real Biology"** class.
+    - Synthetic random sequences $\rightarrow$ **"Noise"** class.
+    - *(Note: This allows the model to self-adapt to ANY target organism—Plants, Fungi, Invertebrates, or Vertebrates—by learning the specific signature of your uploaded dataset.)*
+- **Model:** `RandomForestClassifier` (200 trees, `max_depth=10`).
+- **Output:** A probability score representing biological likelihood:
 
-- **K-mer Decomposition**: Each sequence → overlapping 5-mers
-- **Vectorization**: `CountVectorizer` creates feature matrix (~4,096 k-mer types)
-- **Compression**: PCA reduces to 10 principal components (retains ~95.3% variance)
-- **Anomaly Detection**: `OneClassSVM` (RBF kernel, `nu=0.05`) learns "normal" k-mer boundary
-- **Scoring**: Decision scores normalized via sigmoid → probability-like score in [0,1]
-- **Why**: Catches unusual motif combinations (chimeras, reading errors)
+  $$P(\text{Real}) \in [0, 1]$$
+
+- **Why:** Catches statistically impossible sequences (e.g., incorrect GC% or abnormal length distributions).
+
+#### **Path B – Motif Brain (One-Class SVM + PCA)**
+
+- **K-mer Decomposition:** Each sequence is mapped to overlapping $k$-mers (where $k=6$).
+- **Vectorization:** `CountVectorizer` generates a high-dimensional feature matrix:
+
+  $$N_{\text{features}} = 4^6 = 4,096$$
+
+- **Compression:** **PCA** reduces dimensionality to 10 principal components while retaining significant variance:
+
+  $$\sigma^2_{\text{retained}} \approx 95.3\%$$
+
+- **Anomaly Detection:** `OneClassSVM` (RBF kernel, $\nu=0.05$) learns the "normal" biological boundary.
+- **Scoring:** Decision function distances are normalized via a sigmoid function to a probability-like score in $[0,1]$.
+- **Why:** Catches unusual motif combinations (chimeras, sequencing errors).
 
 ### ⚖️ The Ensemble Verdict
 For each OTU, MetaTrimX calculates a consensus score to determine biological validity.
