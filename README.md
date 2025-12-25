@@ -65,8 +65,10 @@ In **Mode 2**, MetaTrimX promotes every OTU/ASV to a **candidate biological enti
 #### **Path A – Statistical Brain (Random Forest Classifier)**
 
 - **Features per Sequence:** The model extracts a feature vector $X$ for every read:
-  
-  $$X = [\text{Length}, \text{GC}_{\text{frac}}, H_{\text{entropy}}]$$
+
+  $$
+  X = [\text{Length}, \text{GC}_{\text{frac}}, H_{\text{entropy}}]
+  $$
 
 - **Training Strategy:**
     - Top $\approx 20\%$ abundant sequences $\rightarrow$ **"Real Biology"** class.
@@ -75,7 +77,9 @@ In **Mode 2**, MetaTrimX promotes every OTU/ASV to a **candidate biological enti
 - **Model:** `RandomForestClassifier` (200 trees, `max_depth=10`).
 - **Output:** A probability score representing biological likelihood:
 
-  $$P(\text{Real}) \in [0, 1]$$
+  $$
+  P(\text{Real}) \in [0, 1]
+  $$
 
 - **Why:** Catches statistically impossible sequences (e.g., incorrect GC% or abnormal length distributions).
 
@@ -84,17 +88,21 @@ In **Mode 2**, MetaTrimX promotes every OTU/ASV to a **candidate biological enti
 - **K-mer Decomposition:** Each sequence is mapped to overlapping $k$-mers (where $k=6$).
 - **Vectorization:** `CountVectorizer` generates a high-dimensional feature matrix:
 
-  $$N_{\text{features}} = 4^6 = 4,096$$
+  $$
+  N_{\text{features}} = 4^6 = 4,096
+  $$
 
 - **Compression:** **PCA** reduces dimensionality to 10 principal components while retaining significant variance:
 
-  $$\sigma^2_{\text{retained}} \approx 95.3\%$$
+  $$
+  \sigma^2_{\text{retained}} \approx 95.3\%
+  $$
 
 - **Anomaly Detection:** `OneClassSVM` (RBF kernel, $\nu=0.05$) learns the "normal" biological boundary.
 - **Scoring:** Decision function distances are normalized via a sigmoid function to a probability-like score in $[0,1]$.
 - **Why:** Catches unusual motif combinations (chimeras, sequencing errors).
 
-### ⚖️ The Ensemble Verdict
+### The Ensemble Verdict
 For each OTU, MetaTrimX calculates a consensus score to determine biological validity.
 
 **1. Calculation:**
@@ -116,7 +124,7 @@ Results exported to `AI_Classification.csv` with per-OTU RF score, SVM score, en
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
 | Feature | Description |
 |---------|-------------|
