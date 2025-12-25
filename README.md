@@ -1,4 +1,5 @@
-# 🧬 MetaTrimX: Machine Learning-Powered Metabarcoding Pipeline
+# MetaTrimX v3.0: Precision Metabarcoding, Powered by Machine Learning
+### The Universal "Bio-Cortex" Engine for Automated Amplicon Processing
 ---
 
 ##  Overview
@@ -10,8 +11,7 @@
 MetaTrimX employs a **Dual-Path Machine Learning Architecture**:
 
 1. **Mode 1 (Diagnostic - The Predictive Optimizer)**: Uses **Multi-Output Random Forest Regressor** to intelligently diagnose your raw sequencing data and automatically predict optimal processing parameters before execution
-2. **Mode 2 (Production - The Neural Sentinel)**: Executes the complete cleaning, clustering, and artifact filtering pipeline with either ML-optimized or user-defined parameters, then applies a **Hybrid Ensemble Classifier** for confidence scoring
-
+2. **Mode 2 The Bio-Sentinel (Quality Control)**: Deploys a **Hybrid Ensemble (RF + SVM)** to validate the pipeline's output. It acts as an automated critic, scoring every OTU to distinguish true biology from subtle artifacts.
 ---
 
 ##  Machine Learning Engine
@@ -253,22 +253,28 @@ The pipeline moves toward biological synthesis by grouping sequences:
 This is the flagship "Neural Firewall" that validates every generated sequence using a dual-path ensemble.
 **Mathematical Framework**
 
-### 1. Statistical Features (Random Forest)
-The Neural Sentinel calculates complexity metrics for every sequence to detect anomalies.
-- **Shannon Entropy (H)**: Measures the randomness of the nucleotide sequence.
-  $$ H = - \sum p_i \log_2 p_i $$
-  *(Where $p_i$ is the frequency of each base A, C, G, T)*
-- **GC Content (GC%)**: The proportion of Guanine and Cytosine bases, critical for distinguishing biological sequences from sequencing artifacts.
+### 🧠 Mathematical Architecture
 
-### 2. Motif Analysis (One-Class SVM)
-- **K-mer Decomposition**: Sequences are vectorized into overlapping substrings of length *k*.
-- **Feature Vector Size**: For a read of length *L*, the number of k-mers generated is:
-  $$ N = L - k + 1 $$
+#### 1. Statistical Features (Random Forest)
+The Sentinel Engine calculates thermodynamic and complexity metrics for every sequence to detect biological anomalies.
 
-### 3. Ensemble Scoring Logic
-The final classification is a consensus between the Statistical Brain and the Motif Brain.
-- **Confidence Score Formula**:
-  $$ \text{Confidence Score} = \frac{P(\text{Random Forest}) + P(\text{One-Class SVM})}{2} $$
+* **Shannon Entropy ($H$):** Quantifies the information density of the nucleotide sequence to detect low-complexity repeats.
+    $$H = - \sum_{i \in \{A,C,G,T\}} p_i \log_2(p_i)$$
+    *(Where $p_i$ is the frequency of each base)*
+
+* **GC Content ($\%GC$):** The proportion of Guanine and Cytosine bases, utilized as a primary discriminator between biological amplicons and sequencing artifacts.
+
+#### 2. Motif Analysis (One-Class SVM)
+* **K-mer Decomposition:** Sequences are vectorized into overlapping substrings of length $k$, mapping reads into a high-dimensional feature space.
+* **Feature Vector Dimensions:** For a read of length $L$ and k-mer size $k$, the number of generated features is:
+    $$N_{features} = L - k + 1$$
+
+#### 3. Ensemble Scoring Logic
+The final classification is derived from a weighted consensus between the Statistical Brain (RF) and the Motif Brain (SVM).
+
+* **Confidence Score Formula:**
+    $$C_{final} = \frac{P_{RF}(\text{Real}) + P_{SVM}(\text{Real})}{2}$$
+    *(Where a score $> 0.5$ indicates valid biology)*
 
 - **Decision Thresholds**:
   - **Real Biology**: Score > 0.5
