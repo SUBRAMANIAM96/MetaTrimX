@@ -59,12 +59,24 @@ In **Mode 2**, MetaTrimX promotes every OTU to a **candidate biological entity**
 - **Scoring**: Decision scores normalized via sigmoid → probability-like score in [0,1]
 - **Why**: Catches unusual motif combinations (chimeras, reading errors)
 
-**Ensemble Verdict**
+### ⚖️ The Ensemble Verdict
+For each OTU, MetaTrimX calculates a consensus score to determine biological validity.
 
-For each OTU, MetaTrimX computes:
-```python
-final_confidence = (RF_score + SVM_score) / 2
-verdict = "Real_Biology" if final_confidence > 0.5 else "Artifact"
+**1. Calculation:**
+
+$$
+\text{Final Confidence} = \frac{\text{RF}_{\text{score}} + \text{SVM}_{\text{score}}}{2}
+$$
+
+**2. Decision Rule:**
+
+$$
+\text{Verdict} = \begin{cases} 
+\text{Real Biology} & \text{if } \text{Confidence} > 0.5 \\
+\text{Artifact} & \text{if } \text{Confidence} \leq 0.5 
+\end{cases}
+$$
+
 ```
 
 Results exported to `AI_Classification.csv` with per-OTU RF score, SVM score, ensemble confidence, and verdict—so you **inspect, filter, or override at will**.
