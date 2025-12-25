@@ -6,7 +6,7 @@
 
 **MetaTrimX** is a revolutionary, fully automated bioinformatics pipeline for metabarcoding analysis. It transforms raw paired-end Illumina sequencing reads into publication-ready Operational Taxonomic Units (OTUs) or Amplicon Sequence Variants (ASVs) through two distinct execution pathways powered by machine learning.
 
-### 🚀 What Makes MetaTrimX Unique?
+### What Makes MetaTrimX Unique?
 **MetaTrimX employs a revolutionary "Dual-Path" Machine Learning Architecture that adapts to any biological marker.**
 
 #### **Mode 1: The Predictive Optimizer (Auto-Tuning)**
@@ -15,7 +15,8 @@ Uses a **Multi-Output Random Forest** to diagnose raw data signatures and automa
 
 #### **Mode 2: The Bio-Sentinel (Quality Control)**
 *Automated defense against noise.*
-Deploys a **Hybrid Ensemble (RF + SVM)** to validate the pipeline's output. It acts as an automated critic, scoring every **OTU or ASV** to distinguish true biology from subtle artifacts with high-precision confidence scoring.
+Deploys a **Hybrid Ensemble (RF + SVM)** to audit your results. It acts as an automated critic, scoring every **OTU or ASV** to strictly separate true biological sequences from subtle artifacts.
+
 ---
 
 ##  Machine Learning Engine
